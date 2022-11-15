@@ -1,0 +1,227 @@
+# Default values for fuh-realtime-emotions.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+authentication-node:
+  extraEnvVars: 
+    - name: CLIENT_ID
+      value: "jitsi-meet-emotion"
+    - name: SECRET
+      value: "gUxcfAaaUD1ffkHvHIR13UTgpFCFyea2"
+    - name: BASE_URL
+      value: "https://auth.local"
+    - name: ISSUER_BASE_URL
+      value: "http://mykeycloak/realms/jitsi-emotion"
+    - name: JITSI_PUB_URL
+      value: "https://jitsi.local"
+    - name: JITSI_SECRET
+      value: "254uni5DFCY25hvb233bjHJBm6l34j5hb43hb3Fuy23ebwuyfMDWft2"
+    - name: JITSI_SUBJECT
+      value: "jitsi-meet-emotion"
+  mongodb:
+    enabled: false
+  image:
+    repository: erge234/auth
+    tag: helm
+    pullPolicy: Always
+  getAppFromExternalRepository: false
+  ingress:
+    enabled: true
+    hostname: auth.local
+    annotations: {kubernetes.io/ingress.class: nginx}
+
+emotionbackend-node:
+  extraEnvVars:
+  - name: ENABLE_REDIS_WORKER
+    value: "true"
+  - name: ENABLE_CELERY_WORKER
+    value: "false"
+  - name: ENABLE_BENTOML_WORKER
+    value: "false"
+  - name: REDIS_CHART_NAME
+    value: "redis-cluster"
+  - name: CELERY_BROKER_URL
+    value: "amqp://admin:mypass@rabbitmq-service:5672"
+  - name: CELERY_RESULT_BACKEND
+    value: "redis://myredis-headless:6379/0"
+  - name: YATAI_DEPLOYMENT_URL
+    value: "http://emotion-analyzer.yatai.svc.cluster.local:3000/predict_async"
+  mongodb:
+    enabled: false
+  image:
+    repository: erge234/socket_emotion
+    tag: gateway
+    pullPolicy: Always
+  containerPorts:
+    http: 8010
+  getAppFromExternalRepository: false
+  ingress:
+    enabled: true
+    hostname: emotionbackend
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/enable-cors: "true"
+      nginx.ingress.kubernetes.io/cors-allow-methods: "PUT, GET, POST, OPTIONS, DELETE"
+      nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    tls: true
+    selfSigned: true
+    
+grafana:
+  enabled: false
+
+jitsi-meet:
+  enableAuth: true
+  enableGuests: false
+  publicURL: "https://jitsi.local"
+  web:
+    image:
+      repository: erge234/web
+      tag: stable-6865-emotion
+      pullPolicy: Always
+    extraEnvs: {TOKEN_AUTH_URL: "https://auth.local/room/{room}"}
+    ingress:
+      enabled: true
+      annotations: {kubernetes.io/ingress.class: nginx}
+      tls: 
+      - secretName: jitsi-web-certificate
+        hosts:
+          - jitsi.local
+  jvb:
+    UDPPort: 30000
+    publicIP: jitsi.local
+    service:
+      type: NodePort
+    websockets:
+      enabled: true
+  xmpp:
+    crossDomain: true
+  prosody:
+    authType: jwt
+    jwtAppId: jitsi-meet-emotion
+    jwtAppSecret: 254uni5DFCY25hvb233bjHJBm6l34j5hb43hb3Fuy23ebwuyfMDWft2
+    jwtAcceptedIssuers: jitsi
+    jwtAcceptedAudiences: jitsi
+
+redis-cluster:
+  fullnameOverride: "redis-cluster"
+  image:
+    repository: erge234/redis-cluster
+    tag: 6.2-debian-11
+  usePassword: false
+  redis:
+    configmap: |+
+      loadmodule /usr/lib/redis/modules/redistimeseries.so
+      loadmodule /usr/lib/redis/modules/redisai.so
+      loadmodule /usr/lib/redis/modules/redisgears.so Plugin /var/opt/redislabs/modules/rg/plugin/gears_python.so
+  cluster:
+    nodes: 3
+    replicas: 0
+
+# Loads AI models and Redis Gears after chart installation. 
+redisAIProvider:
+  image: 
+    repository: erge234/redis-ai-client
+    pullPolicy: Always
+
+keycloak:
+  auth:
+    adminUser: admin
+    adminPassword: "admin"
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: true
+    hostname: mykeycloak
+    annotations: {kubernetes.io/ingress.class: nginx}
+  keycloakConfigCli:
+    enabled: true
+    existingConfigmap: "keycloak-config-cli-configmap"
+  postgresql:
+    auth:
+      password: "admin"
+
+# The configmap referenced in `keycloak.keycloakConfigCli.existingConfigmap`
+# keycloak-config-cli realms configuration
+# NOTE: nil keys will be considered files to import locally
+keycloakConfigCli:
+  configuration:
+    files/jitsi-emotion.yaml:
+
+replicaCount: 0
+
+image:
+  repository: nginx
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

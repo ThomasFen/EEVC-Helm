@@ -1,0 +1,21 @@
+dependencies:
+- name: node
+  repository: https://charts.bitnami.com/bitnami
+  version: 18.1.17
+- name: node
+  repository: https://charts.bitnami.com/bitnami
+  version: 18.1.17
+- name: grafana
+  repository: https://charts.bitnami.com/bitnami
+  version: 8.1.0
+- name: jitsi-meet
+  repository: https://jitsi-contrib.github.io/jitsi-helm/
+  version: 1.2.2
+- name: redis-cluster
+  repository: https://charts.bitnami.com/bitnami
+  version: 7.1.0
+- name: keycloak
+  repository: https://charts.bitnami.com/bitnami
+  version: 9.6.1
+digest: sha256:8bba689f17ce6530ede0c1e67903eb73aaba90a93873b2ddc8f47932afb7dd65
+generated: "2022-11-15T14:19:42.785134249+01:00"
