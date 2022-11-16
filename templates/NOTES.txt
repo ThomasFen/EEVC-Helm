@@ -4,12 +4,12 @@
      http{{ if $.Values.emotionbackend.ingress.tls }}s{{ end }}://{{ .Values.emotionbackend.ingress.hostname }}
      http{{ if $.Values.authentication.ingress.tls }}s{{ end }}://{{ .Values.authentication.ingress.hostname }}
 {{- with (first .Values.jitsi.web.ingress.tls) }}
-  https://{{ first .hosts }}
+    https://{{ first .hosts }}
 {{- end }}
 2. Use preconfigured login data to authenticate in Jitsi:
      Name: patient | physician | secondpatient | secondphysician etc.
      Password: patient | physician | secondpatient | secondphysician etc.   
-3. During a Jitsi video conferenc, click on the 3 dots next to a patient or in the
+3. During a Jitsi video conference, click on the 3 dots next to a patient or in the
    main toolbar and enable/disable emotion detection.
 {{- end }}
 
