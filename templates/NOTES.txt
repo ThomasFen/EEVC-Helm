@@ -11,5 +11,6 @@
      Password: patient | physician | secondpatient | secondphysician etc.   
 3. During a Jitsi video conference, click on the 3 dots next to a patient or in the
    main toolbar and enable/disable emotion detection.
+Note: Verify that jitsi.jvb.publicIP resolves to the public IP of the deployment.
 {{- end }}
 

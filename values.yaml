@@ -117,7 +117,7 @@ jitsi:
           - jitsi.local
   jvb:
     UDPPort: 30000
-    publicIP: 192.168.2.52 # Your node's public ip. 
+    publicIP: jitsi.local # Your node's public ip. Must not resolve to localhost.
     service:
       type: NodePort
     websockets:
