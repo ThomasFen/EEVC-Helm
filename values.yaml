@@ -117,7 +117,7 @@ jitsi:
           - jitsi.local
   jvb:
     UDPPort: 30000
-    publicIP: jitsi.local
+    publicIP: jitsi.local # If this resolves to localhost, ICE will fail, use IPv4 Address instead.
     service:
       type: NodePort
     websockets:
