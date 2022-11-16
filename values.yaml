@@ -122,14 +122,13 @@ jitsi:
       type: NodePort
     websockets:
       enabled: true
-  xmpp:
-    crossDomain: true
-  prosody:
-    authType: jwt
-    jwtAppId: jitsi-meet-emotion
-    jwtAppSecret: 254uni5DFCY25hvb233bjHJBm6l34j5hb43hb3Fuy23ebwuyfMDWft2
-    jwtAcceptedIssuers: jitsi
-    jwtAcceptedAudiences: jitsi
+  extraCommonEnvs: {
+    AUTH_TYPE: jwt,
+    JWT_APP_ID: jitsi-meet-emotion,
+    JWT_APP_SECRET: 254uni5DFCY25hvb233bjHJBm6l34j5hb43hb3Fuy23ebwuyfMDWft2,
+    JWT_ACCEPTED_ISSUERS: jitsi,
+    JWT_ACCEPTED_AUDIENCES: jitsi,
+    XMPP_CROSS_DOMAIN: "true" ,}
 
 ## Overwrites default values of Bitnami's Redis-Cluster chart. 
 ## Uses an image equipped with RedisAI and Redis Gears module.
