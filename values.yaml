@@ -1,6 +1,6 @@
 ## Overwrites default values of Bitnami's Node.js chart. 
 ## Referenced in Jitsi's tokenauthurl. Utilizes Keycloak to provide Jitsi with JWTs.
-authentication-node:
+authentication:
   extraEnvVars: 
     - name: CLIENT_ID
       value: "jitsi-meet-emotion"
@@ -30,7 +30,7 @@ authentication-node:
 
 ## Overwrites default values of Bitnami's Node.js chart. 
 ## Used to run socket.IO. Sits between browsers running Jitsi and backend services.
-emotionbackend-node:
+emotionbackend:
   extraEnvVars:
   - name: ENABLE_REDIS_WORKER
     value: "true"
@@ -98,13 +98,13 @@ grafana:
         value: "false"
 
 ## Overwrites default values of the community supported 3rd party Jitsi chart. 
-jitsi-meet:
+jitsi:
   enableAuth: true
   enableGuests: false
   publicURL: "https://jitsi.local"
   web:
     image:
-      repository: erge234/web
+      repository: erge234/web # Is configured to connect to https://emotionbackend 
       tag: stable-6865-emotion
       pullPolicy: Always
     extraEnvs: {TOKEN_AUTH_URL: "https://auth.local/room/{room}"}
