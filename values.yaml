@@ -1,7 +1,5 @@
-# Default values for fuh-realtime-emotions.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
+## Overwrites default values of Bitnami's Node.js chart. 
+## Referenced in Jitsi's tokenauthurl. Utilizes Keycloak to provide Jitsi with JWTs.
 authentication-node:
   extraEnvVars: 
     - name: CLIENT_ID
@@ -11,7 +9,7 @@ authentication-node:
     - name: BASE_URL
       value: "https://auth.local"
     - name: ISSUER_BASE_URL
-      value: "http://mykeycloak/realms/jitsi-emotion"
+      value: "http://mykeycloak/realms/jitsi-emotion" # Assumes Keycloak's service name is mykeycloak
     - name: JITSI_PUB_URL
       value: "https://jitsi.local"
     - name: JITSI_SECRET
@@ -30,6 +28,8 @@ authentication-node:
     hostname: auth.local
     annotations: {kubernetes.io/ingress.class: nginx}
 
+## Overwrites default values of Bitnami's Node.js chart. 
+## Used to run socket.IO. Sits between browsers running Jitsi and backend services.
 emotionbackend-node:
   extraEnvVars:
   - name: ENABLE_REDIS_WORKER
@@ -38,8 +38,8 @@ emotionbackend-node:
     value: "false"
   - name: ENABLE_BENTOML_WORKER
     value: "false"
-  - name: REDIS_CHART_NAME
-    value: "redis-cluster"
+  - name: REDIS_CHART_NAME 
+    value: "redis-cluster" # Service name of Redis.
   - name: CELERY_BROKER_URL
     value: "amqp://admin:mypass@rabbitmq-service:5672"
   - name: CELERY_RESULT_BACKEND
@@ -65,10 +65,39 @@ emotionbackend-node:
       nginx.ingress.kubernetes.io/cors-allow-origin: "*"
     tls: true
     selfSigned: true
-    
+
+## Overwrites default values of Bitnami's Grafana chart.
+## TODO revisit, since it has only been used in the context of a single master redis.
 grafana:
   enabled: false
+  plugins: "redis-app,redis-datasource,volkovlabs-image-panel"
+  dashboardsProvider:
+    enabled: true
+  dashboardsConfigMaps:
+    - configMapName: redis-camera
+      fileName: camera.json
+  datasources:
+    secretDefinition:
+      apiVersion: 1
+      datasources:
+        - name: Redis
+          type: redis-datasource
+          access: proxy
+          orgId: 1
+          isDefault: true
+          version: 1
+          url: redis://myredis-headless:6379 # Assumes Redis' service name is myredis.
+          editable: true
+  grafana:
+    extraEnvVars:
+      - name: GF_AUTH_ANONYMOUS_ENABLED
+        value: "true"
+      - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+        value: Admin
+      - name: GF_AUTH_BASIC_ENABLED
+        value: "false"
 
+## Overwrites default values of the community supported 3rd party Jitsi chart. 
 jitsi-meet:
   enableAuth: true
   enableGuests: false
@@ -102,8 +131,10 @@ jitsi-meet:
     jwtAcceptedIssuers: jitsi
     jwtAcceptedAudiences: jitsi
 
+## Overwrites default values of Bitnami's Redis-Cluster chart. 
+## Uses an image equipped with RedisAI and Redis Gears module.
 redis-cluster:
-  fullnameOverride: "redis-cluster"
+  fullnameOverride: "redis-cluster" # Service name of Redis.
   image:
     repository: erge234/redis-cluster
     tag: 6.2-debian-11
@@ -117,13 +148,15 @@ redis-cluster:
     nodes: 3
     replicas: 0
 
-# Loads AI models and Redis Gears after chart installation. 
+## Loads AI models and Redis Gears after chart installation. 
 redisAIProvider:
   image: 
     repository: erge234/redis-ai-client
     pullPolicy: Always
 
+## Overwrites default values of Bitnami's Keycloak chart. 
 keycloak:
+  fullnameOverride: "mykeycloak" # Service name of Keycloak.
   auth:
     adminUser: admin
     adminPassword: "admin"
