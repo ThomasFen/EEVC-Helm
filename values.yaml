@@ -152,6 +152,7 @@ redisAIProvider:
   image: 
     repository: erge234/redis-ai-client
     pullPolicy: Always
+  faceRecognitionEnabled: true
 
 ## Overwrites default values of Bitnami's Keycloak chart. 
 keycloak:

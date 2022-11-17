@@ -36,7 +36,11 @@ spec:
               cd /tmp/ai &&
               readarray -t keytable < /tmp/keytable.txt &&
               readarray -t start_slots < <(redis-cli --no-raw -c -h redis-cluster cluster slots | grep -v '^[[:blank:]]' | cut -c 17-) &&
-              cat gears-emotion.py | redis-cli -c -h redis-cluster -x RG.PYEXECUTE &&
+              {{- if .Values.redisAIProvider.faceRecognitionEnabled }}
+              cat gears-emotion-slim.py | redis-cli -c -h redis-cluster -x RG.PYEXECUTE &&
+              {{- else }}
+              cat gears-emotion-portrait-slim.py | redis-cli -c -h redis-cluster -x RG.PYEXECUTE &&
+              {{- end }}
               for slot in ${start_slots[@]}  ;  do \
                   cat blazeface_back_converted.onnx | redis-cli -c -h redis-cluster -x AI.MODELSTORE blazeface:model:{${keytable[slot]}}  ONNX CPU BLOB &&
                   cat emotion.onnx | redis-cli -c -h redis-cluster -x AI.MODELSTORE emotion:model:{${keytable[slot]}} ONNX CPU BLOB &&
