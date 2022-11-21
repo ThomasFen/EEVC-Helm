@@ -11,4 +11,4 @@
 
     - or deploy with a Redis Gears script that assumes images are already portraits and therefore no face detection model needs to run
 
-            helm install --set redisAIProvider.faceRecognitionEnabled=false 
+            helm install --set redisAIProvider.faceRecognitionEnabled=false fh ./
