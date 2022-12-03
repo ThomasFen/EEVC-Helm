@@ -17,5 +17,8 @@ dependencies:
 - name: keycloak
   repository: https://charts.bitnami.com/bitnami
   version: 9.6.1
-digest: sha256:09101df4e89e3cf6822e476cda04102e2f0c09d10712641e83ae1aa5e9714f0d
-generated: "2022-11-16T11:50:48.069186969+01:00"
+- name: common
+  repository: https://charts.bitnami.com/bitnami
+  version: 1.17.1
+digest: sha256:c069a172aab73ce729d4008f0fd95cb638cfb5a216782e0dc43658cfd9d6bbc8
+generated: "2022-11-28T00:21:45.94301525+01:00"

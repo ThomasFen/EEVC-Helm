@@ -1,0 +1,99 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: {{ include "common.capabilities.ingress.apiVersion" . }}
+kind: Ingress
+metadata:
+  name: {{ include "fuh-realtime-emotions.fullname" . }}
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: fuh-realtime-emotions
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- if .Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- if .Values.ingress.annotations }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.ingress.annotations "context" $) | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if and .Values.ingress.ingressClassName (eq "true" (include "common.ingress.supportsIngressClassname" .)) }}
+  ingressClassName: {{ .Values.ingress.ingressClassName | quote }}
+  {{- end }}
+  rules:
+    {{- if and .Values.ingress.additionalHosts.keycloak.hostname .Values.keycloak.enabled }}
+    - host: {{ (tpl .Values.ingress.additionalHosts.keycloak.hostname .) | quote }}
+      http:
+        paths:
+          {{- if .Values.ingress.additionalHosts.keycloak.path }}
+          - path: {{ .Values.ingress.additionalHosts.keycloak.path }}
+            {{- if eq "true" (include "common.ingress.supportsPathType" .) }}
+            pathType: {{ .Values.ingress.additionalHosts.keycloak.pathType }}
+            {{- end }}
+            backend: {{- include "common.ingress.backend" (dict "serviceName" (include "keycloak.fullname" .Subcharts.keycloak) "servicePort" .Values.ingress.additionalHosts.keycloak.servicePort "context" $)  | nindent 14 }}
+          {{- end }}    
+    {{- end }}     
+    {{- if and .Values.ingress.additionalHosts.jitsi.hostname .Values.jitsi.enabled }}
+    - host: {{ (tpl .Values.ingress.additionalHosts.jitsi.hostname .) | quote }}
+      http:
+        paths:
+          {{- if .Values.ingress.additionalHosts.jitsi.path }}
+          - path: {{ .Values.ingress.additionalHosts.jitsi.path }}
+            {{- if eq "true" (include "common.ingress.supportsPathType" .) }}
+            pathType: {{ .Values.ingress.additionalHosts.jitsi.pathType }}
+            {{- end }}
+            backend: {{- include "common.ingress.backend" (dict "serviceName" (include "jitsi-meet.web.fullname" .Subcharts.jitsi) "servicePort" .Values.ingress.additionalHosts.jitsi.servicePort "context" $)  | nindent 14 }}
+          {{- end }}    
+    {{- end }}   
+    {{- if and .Values.ingress.additionalHosts.emotionbackend.hostname .Values.emotionbackend.enabled }}
+    - host: {{ (tpl .Values.ingress.additionalHosts.emotionbackend.hostname .) | quote }}
+      http:
+        paths:
+          {{- if .Values.ingress.additionalHosts.emotionbackend.path }}
+          - path: {{ .Values.ingress.additionalHosts.emotionbackend.path }}
+            {{- if eq "true" (include "common.ingress.supportsPathType" .) }}
+            pathType: {{ .Values.ingress.additionalHosts.emotionbackend.pathType }}
+            {{- end }}
+            backend: {{- include "common.ingress.backend" (dict "serviceName" (include "common.names.fullname" .Subcharts.emotionbackend) "servicePort" .Values.ingress.additionalHosts.emotionbackend.servicePort "context" $)  | nindent 14 }}
+          {{- end }}    
+    {{- end }}   
+    {{- if and .Values.ingress.additionalHosts.authentication.hostname .Values.authentication.enabled}}
+    - host: {{ (tpl .Values.ingress.additionalHosts.authentication.hostname .) | quote }}
+      http:
+        paths:
+          {{- if .Values.ingress.additionalHosts.authentication.path }}
+          - path: {{ .Values.ingress.additionalHosts.authentication.path }}
+            {{- if eq "true" (include "common.ingress.supportsPathType" .) }}
+            pathType: {{ .Values.ingress.additionalHosts.authentication.pathType }}
+            {{- end }}
+            backend: {{- include "common.ingress.backend" (dict "serviceName" (include "common.names.fullname" .Subcharts.authentication) "servicePort" .Values.ingress.additionalHosts.authentication.servicePort "context" $)  | nindent 14 }}
+          {{- end }}    
+    {{- end }}                             
+    {{- range .Values.ingress.extraHosts }}
+    - host: {{ (tpl .name $) }}
+      http:
+        paths:
+          - path: {{ default "/" .path }}
+            {{- if eq "true" (include "common.ingress.supportsPathType" $) }}
+            pathType: {{ default "ImplementationSpecific" .pathType }}
+            {{- end }}
+            backend: {{- include "common.ingress.backend" (dict "serviceName" (include "fuh-realtime-emotions.fullname" $) "servicePort" $.Values.ingress.servicePort "context" $) | nindent 14 }}
+    {{- end }}
+    {{- if .Values.ingress.extraRules }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.ingress.extraRules "context" $) | nindent 4 }}
+    {{- end }}
+  {{- if or (and .Values.ingress.tls (or (include "common.ingress.certManagerRequest" ( dict "annotations" .Values.ingress.annotations )) .Values.ingress.selfSigned .Values.ingress.secrets )) .Values.ingress.extraTls }}
+  tls:
+  {{- if and .Values.ingress.tls (or (include "common.ingress.certManagerRequest" ( dict "annotations" .Values.ingress.annotations )) .Values.ingress.secrets .Values.ingress.selfSigned) }}
+    - hosts:
+        - {{ (tpl .Values.ingress.additionalHosts.keycloak.hostname .) | quote }}
+        - {{ (tpl .Values.ingress.additionalHosts.jitsi.hostname .) | quote }}
+        - {{ (tpl .Values.ingress.additionalHosts.emotionbackend.hostname .) | quote }}
+        - {{ (tpl .Values.ingress.additionalHosts.authentication.hostname .) | quote }}
+      secretName: {{ printf "%s-tls" ( include "common.names.fullname" .)  }}
+    {{- end }}
+    {{- if .Values.ingress.extraTls }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.ingress.extraTls "context" $) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,26 @@
+{{- if .Values.emotionbackend.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.emotionbackend.extraEnvVarsCM | quote }}
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: emotionbackend
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+  {{- end }}
+data:
+  YATAI_DEPLOYMENT_URL: "http://emotion-analyzer.yatai.svc.cluster.local:3000/predict_async"
+  CELERY_RESULT_BACKEND: "redis://myredis-headless:6379/0"
+  CELERY_BROKER_URL: "amqp://admin:mypass@rabbitmq-service:5672"
+  {{- if .Values.redis.enabled }}
+  ENABLE_REDIS_WORKER: "true"
+  REDIS_SERVICE_NAME: {{ template "common.names.fullname" .Subcharts.redis }}
+  {{- end }}
+  ENABLE_BENTOML_WORKER: "false"
+  ENABLE_CELERY_WORKER: "false"
+{{- end }}
+

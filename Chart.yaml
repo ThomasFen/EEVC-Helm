@@ -23,11 +23,13 @@ version: 0.1.0
 # It is recommended to use it with quotes.
 appVersion: "0.1.0"
 dependencies:
-- name: node
+- condition: authentication.enabled
+  name: node
   repository: https://charts.bitnami.com/bitnami
   version: 18.1.17
   alias: authentication
-- name: node
+- condition: emotionbackend.enabled
+  name: node
   repository: https://charts.bitnami.com/bitnami
   version: 18.1.17
   alias: emotionbackend
@@ -35,13 +37,20 @@ dependencies:
   name: grafana
   repository: https://charts.bitnami.com/bitnami
   version: 8.1.0
-- name: jitsi-meet
+- condition: jitsi.enabled
+  name: jitsi-meet
   repository: https://jitsi-contrib.github.io/jitsi-helm/
   version: 1.2.2
   alias: jitsi
-- name: redis-cluster
+- condition: redis.enabled
+  name: redis-cluster
   repository: https://charts.bitnami.com/bitnami
   version: 7.1.0
-- name: keycloak
+  alias: redis
+- condition: keycloak.enabled
+  name: keycloak
   repository: https://charts.bitnami.com/bitnami
   version: 9.6.1
+- name: common
+  version: 1.x.x
+  repository: https://charts.bitnami.com/bitnami

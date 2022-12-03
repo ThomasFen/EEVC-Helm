@@ -1,16 +1,23 @@
-{{- if and .Values.emotionbackend.ingress.enabled .Values.authentication.ingress.enabled .Values.jitsi.web.ingress.enabled }}
-1. Trust certificates of following URLs and make sure they resolve to your k8 ip.
-   e.g modify /etc/hosts or use something like the minikube addon ingress-dns. 
-     http{{ if $.Values.emotionbackend.ingress.tls }}s{{ end }}://{{ .Values.emotionbackend.ingress.hostname }}
-     http{{ if $.Values.authentication.ingress.tls }}s{{ end }}://{{ .Values.authentication.ingress.hostname }}
-{{- with (first .Values.jitsi.web.ingress.tls) }}
-    https://{{ first .hosts }}
-{{- end }}
-2. Use preconfigured login data to authenticate in Jitsi:
+{{- if and .Values.ingress.enabled .Values.jitsi.enabled .Values.emotionbackend.enabled .Values.keycloak.enabled }}
+0. Add the hostnames you chose to the hosts file:
+   PRIVATE_NETWORK_IP {{ tpl .Values.global.emotionbackendHostname  . }} {{ tpl .Values.global.authHostname  . }} {{ tpl .Values.ingress.additionalHosts.keycloak.hostname  . }} {{ tpl .Values.ingress.additionalHosts.jitsi.hostname  . }}
+
+   Add "rewrite name {{ tpl .Values.ingress.additionalHosts.keycloak.hostname  . }} {{ include "keycloak.fullname" .Subcharts.keycloak }}.{{ .Release.Namespace }}.svc.cluster.local" to the Corefile of CoreDNS by running:
+   kubectl -n kube-system edit configmaps coredns -o yaml
+
+{{ if .Values.ingress.selfSigned }}
+   Go to http{{ if .Values.ingress.enabled }}s{{ end }}://{{ tpl .Values.global.emotionbackendHostname  . }} and trust the self-signed certificate.
+{{ end }}
+1. Visit Jitsi at http{{ if .Values.ingress.enabled }}s{{ end }}://{{ tpl .Values.ingress.additionalHosts.jitsi.hostname  . }}
+
+2. Use preconfigured login data for authentication:
      Name: patient | physician | secondpatient | secondphysician etc.
      Password: patient | physician | secondpatient | secondphysician etc.   
-3. During a Jitsi video conference, click on the 3 dots next to a patient or in the
+
+3. During a video conference, click on the 3 dots next to a patient or in the
    main toolbar and enable/disable emotion detection.
-Note: Verify that jitsi.jvb.publicIP resolves to the public IP of the deployment.
+
+Note: Verify that .Values.jitsi.jvb.publicIP resolves to the public node IP.
 {{- end }}
+
 

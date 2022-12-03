@@ -1,0 +1,65 @@
+{{- if and .Values.authentication.enabled .Values.authentication.extraEnvVarsCM }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.authentication.extraEnvVarsCM | quote }}
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: authentication
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+  {{- end }}
+data:
+  CLIENT_ID: "jitsi-meet-emotion"
+  SECRET: "gUxcfAaaUD1ffkHvHIR13UTgpFCFyea2"
+  JITSI_PUB_URL: {{ .Values.jitsi.publicURL | quote }}
+  JITSI_SECRET: "254uni5DFCY25hvb233bjHJBm6l34j5hb43hb3Fuy23ebwuyfMDWft2"
+  JITSI_SUBJECT: "jitsi-meet-emotion"
+  {{- if .Values.ingress.enabled }}
+  {{- $tlsEnabled := .Values.ingress.tls }}
+  BASE_URL:  "http{{ if $tlsEnabled }}s{{ end }}://{{ tpl .Values.ingress.additionalHosts.authentication.hostname  . }}/"
+  ISSUER_BASE_URL: "http{{ if $tlsEnabled }}s{{ end }}://{{ .Values.ingress.additionalHosts.keycloak.hostname  }}/realms/jitsi-emotion"
+  NODE_TLS_REJECT_UNAUTHORIZED: "0"
+  {{- else }}
+  {{- $nodeIPRequired := ".service.nodeIP is required to make creation of redirect URLs possible!" -}}
+  {{- $loadBalancerIPRequired := ".service.loadBalancerIP is required to make creation of redirect URLs possible!" -}}
+  {{- $failMessage := "Can't generate redirect URLs with service type ClusterIP. Disable the authentication chart or use a different service type or ingress. " -}}
+  {{- with .Values.authentication }}
+  {{- if contains "NodePort" .service.type }}
+  {{- if .service.ports.https }}
+  BASE_URL: "https://{{ required $nodeIPRequired .service.nodeIP }}:{{ .service.nodePorts.https }}/"
+  {{- else }}
+  BASE_URL: "http://{{ required $nodeIPRequired .service.nodeIP }}:{{ .service.nodePorts.http }}/"
+  {{- end }}
+  {{- else if contains "LoadBalancer" .service.type }}
+  {{- if .service.ports.https }}
+  BASE_URL: "https://{{ required $loadBalancerIPRequired .service.loadBalancerIP }}:{{ .service.ports.https }}/"
+  {{- else }}
+  BASE_URL: "http://{{ required $loadBalancerIPRequired .service.loadBalancerIP }}:{{ .service.ports.http }}/"
+  {{- end }}
+  {{- else if contains "ClusterIP" .service.type }}
+  {{- fail $failMessage }}
+  {{- end }}
+  {{- end }}
+  {{- with .Values.keycloak }}
+  {{- if contains "NodePort" .service.type }}
+  {{- if .auth.tls.enabled }}
+  ISSUER_BASE_URL: "https://{{ required $nodeIPRequired .service.nodeIP }}:{{ .service.nodePorts.https }}/"
+  {{- else }}
+  ISSUER_BASE_URL: "http://{{ required $nodeIPRequired .service.nodeIP }}:{{ .service.nodePorts.http }}/"
+  {{- end }}
+  {{- else if contains "LoadBalancer" .service.type }}
+  {{- if .auth.tls.enabled }}
+  ISSUER_BASE_URL: "https://{{ required $loadBalancerIPRequired  .service.loadBalancerIP }}:{{ .service.ports.https }}/"
+  {{- else }}
+  ISSUER_BASE_URL: "http://{{ required $loadBalancerIPRequired .service.loadBalancerIP }}:{{ .service.ports.http }}/"
+  {{- end }}
+  {{- else if contains "ClusterIP" .service.type }}
+  {{- fail $failMessage }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+{{- end }}
