@@ -1,3 +1,378 @@
+## @section Subchart configuration for the authentication middleware
+## @descriptionStart Overwrites some default values of Bitnami's Node.js chart. 
+## Referenced in [Jitsi's](subchart-configuration-for-jitsi) TOKEN_AUTH_URL. Utilizes Keycloak to provide Jitsi with JWTs.
+##
+## ref: https://artifacthub.io/packages/helm/bitnami/node/18.1.17
+## @descriptionEnd
+authentication:
+  ## @param authentication.enabled Whether to install or not the Node.js based authentication chart
+  ##
+  enabled: true
+  service:
+    ## @param authentication.service.type Kubernetes Service type
+    ##
+    type: ClusterIP
+    ## @param authentication.service.nodeIP Node IP is needed when using service type NodePort
+    ##
+    nodeIP: 
+    ## @param authentication.service.loadBalancerIP LoadBalancer IP is needed when using service type LoadBalancer
+    ##
+    loadBalancerIP: 
+  ## @param authentication.extraEnvVarsCM Name of existing ConfigMap containing extra environment variables
+  ##  
+  extraEnvVarsCM: "fuh-realtime-emotions-auth-config"
+  ## MongoDB&reg; chart configuration
+  ## ref: https://github.com/bitnami/charts/blob/master/bitnami/mongodb/values.yaml
+  ##
+  mongodb:
+    ## @param authentication.mongodb.enabled Whether to install or not the MongoDB&reg; chart
+    ## To use an external database set this to false and configure the externaldb parameters
+    ##
+    enabled: false
+  ## Authentication middleware image version
+  ## @param authentication.image.repository NodeJS image repository
+  ## @param authentication.image.tag NodeJS image tag (immutable tags are recommended)
+  ## @param authentication.image.pullPolicy NodeJS image pull policy
+  image:
+    repository: erge234/auth
+    tag: helm
+    pullPolicy: Always
+  ## @param authentication.getAppFromExternalRepository Enable to download app from external git repository
+  ## Disable it if your docker image already includes your application at /app
+  ##    
+  getAppFromExternalRepository: false
+
+## @section Subchart configuration of the emotionbackend
+## @descriptionStart Overwrites some default values of Bitnami's Node.js chart. 
+## Used to run [Socket.IO](https://socket.io/). Sits between browsers running Jitsi and backend services.
+##
+## ref: https://artifacthub.io/packages/helm/bitnami/node/18.1.17
+## @descriptionEnd
+## 
+emotionbackend:
+  ## @param emotionbackend.enabled Whether to install or not the Node.js based emotionbackend chart
+  ##
+  enabled: true
+  ## @param emotionbackend.extraEnvVarsCM Name of existing ConfigMap containing extra environment variables
+  ##  
+  extraEnvVarsCM: "emotionbackend-configuration"
+  ## MongoDB&reg; chart configuration
+  ## ref: https://github.com/bitnami/charts/blob/master/bitnami/mongodb/values.yaml
+  ##
+  mongodb:
+    ## @param emotionbackend.mongodb.enabled Whether to install or not the MongoDB&reg; chart
+    ## To use an external database set this to false and configure the externaldb parameters
+    ##
+    enabled: false
+  ## Emotionbackend image version
+  ## @param emotionbackend.image.repository NodeJS image repository
+  ## @param emotionbackend.image.tag NodeJS image tag (immutable tags are recommended)
+  ## @param emotionbackend.image.pullPolicy NodeJS image pull policy
+  image:
+    repository: erge234/authentication
+    tag: latest
+    pullPolicy: Always
+  ## @param emotionbackend.containerPorts.http Specify the port where your application will be running
+  ##
+  containerPorts:
+    http: 8010
+  ## @param emotionbackend.getAppFromExternalRepository Enable to download app from external git repository
+  ## Disable it if your docker image already includes your application at /app
+  ##      
+  getAppFromExternalRepository: false
+
+## @section Subchart configuration of Jitsi
+## @descriptionStart Overwrites some default values of the community supported 3rd party Jitsi chart
+##
+## ref: https://github.com/jitsi-contrib/jitsi-helm/blob/v1.2.2/values.yaml
+## @descriptionEnd
+## 
+jitsi:
+  ## @param jitsi.enabled Whether to install or not the Jitsi chart
+  ##
+  enabled: true
+  ## @param jitsi.enableAuth Enable authentication
+  ##
+  enableAuth: true
+  ## @param jitsi.enableGuests Enable guest access
+  ##
+  enableGuests: false
+  ## @param jitsi.publicURL Public URL for the web service
+  ##
+  publicURL: "https://jitsi.emotion"
+  ## @extra jitsi.web Jitsi-Meet configuration 
+  ##
+  web:
+    ## Jitsi image version
+    ## @param jitsi.web.image.repository Jitsi image repository
+    ## @param jitsi.web.image.tag Jitsi image tag (immutable tags are recommended)
+    ## @param jitsi.web.image.pullPolicy Jitsi image pull policy
+    ##
+    image:
+      repository: erge234/web # Is configured to connect to https://emotionbackend 
+      tag: stable-6865-emotion
+      pullPolicy: Always
+    ## @param jitsi.web.extraEnvs.TOKEN_AUTH_URL Redirect URL for JWT generation. Directs to [authentication middleware](#subchart-configuration-for-the-authentication-middleware)
+    ## @param jitsi.web.extraEnvs.EMOTIONBACKEND_URL The URL of the [emotionbackend](#subchart-configuration-for-the-emotionbackend)
+    ##
+    extraEnvs: {TOKEN_AUTH_URL: "https://{{ .Values.global.authHostname }}/room/{room}", EMOTIONBACKEND_URL: "https://{{ .Values.global.emotionbackendHostname }} "}
+  ## @extra jitsi.jvb Jitsi Video Bridge (JVB) configuration 
+  ##
+  jvb:
+    ## @param jitsi.jvb.UDPPort It may be required to change the default port to a value allowed by Kubernetes (30000-32768)
+    ##
+    UDPPort: 30000
+    ## @param jitsi.jvb.publicIP Use public IP of one of your node, or the public IP of a loadbalancer in front of the nodes
+    ##
+    publicIP: jitsi.emotion 
+    ## Service Parameters
+    #
+    service:
+      ## @param jitsi.jvb.service.type Kubernetes Service type of the JVB
+      ##
+      type: NodePort
+    ## @param jitsi.jvb.websockets.enabled Enable WebSocket support for JVB/Colibri  
+    ##
+    websockets:
+      enabled: true
+  ## @param jitsi.extraCommonEnvs.AUTH_TYPE Select authentication type (internal, jwt or ldap)
+  ## @param jitsi.extraCommonEnvs.JWT_APP_ID Application identifier
+  ## @param jitsi.extraCommonEnvs.JWT_APP_SECRET Application secret known only to your token
+  ## @param jitsi.extraCommonEnvs.JWT_ACCEPTED_ISSUERS (Optional) Set asap_accepted_issuers as a comma separated list
+  ## @param jitsi.extraCommonEnvs.JWT_ACCEPTED_AUDIENCES (Optional) Set asap_accepted_audiences as a comma separated list
+  ## @param jitsi.extraCommonEnvs.XMPP_CROSS_DOMAIN Allow multiple domains on prosody
+  ##
+  extraCommonEnvs: {
+    AUTH_TYPE: jwt,
+    JWT_APP_ID: jitsi-meet-emotion,
+    JWT_APP_SECRET: 254uni5DFCY25hvb233bjHJBm6l34j5hb43hb3Fuy23ebwuyfMDWft2,
+    JWT_ACCEPTED_ISSUERS: jitsi,
+    JWT_ACCEPTED_AUDIENCES: jitsi,
+    XMPP_CROSS_DOMAIN: "true" ,}
+
+## @section Subchart configuration of Redis
+## @descriptionStart Overwrites some default values of Bitnami's Redis-Cluster chart. 
+## It's intendend to use an image equipped with RedisAI and Redis Gears module.
+##
+## ref: https://artifacthub.io/packages/helm/bitnami/redis-cluster/7.1.0
+## @descriptionEnd
+## 
+redis:
+  ## @param redis.enabled Whether to install or not the Redis chart
+  enabled: true
+  ## Redis image version
+  ## @param redis.image.repository Redis image repository
+  ## @param redis.image.tag Redis image tag (immutable tags are recommended)
+  image:
+    repository: erge234/redis-cluster
+    tag: 6.2-debian-11
+  ## @param redis.usePassword Use password authentication
+  ##
+  usePassword: false
+  ## @extra redis.redis Redis&trade; statefulset parameters
+  ##
+  redis:
+    ## @param redis.redis.configmap Additional Redis&trade; configuration for the nodes
+    ## ref: https://redis.io/topics/config
+    ##
+    configmap: |+
+      loadmodule /usr/lib/redis/modules/redistimeseries.so
+      loadmodule /usr/lib/redis/modules/redisai.so
+      loadmodule /usr/lib/redis/modules/redisgears.so Plugin /var/opt/redislabs/modules/rg/plugin/gears_python.so
+  ## Redis&trade; Cluster settings
+  ##
+  cluster:
+    ## @param redis.cluster.nodes The number of master nodes should always be >= 3, otherwise cluster creation will fail
+    ##
+    nodes: 3
+    ## @param redis.cluster.replicas Number of replicas for every master in the cluster
+    ## Parameter to be passed as --cluster-replicas to the redis-cli --cluster create
+    ## 1 means that we want a replica for every master created
+    ##
+    replicas: 0
+
+## @extra redisAIProvider Job that loads AI models and Redis Gears after chart installation. 
+##
+redisAIProvider:
+  ## @param redisAIProvider.image.repository Redis image repository
+  ## @param redisAIProvider.image.pullPolicy Redis image pull policy
+  image: 
+    repository: erge234/redis-ai-client
+    pullPolicy: Always
+  ## @param redisAIProvider.faceRecognitionEnabled Whether to recognize the face before emotinon analysis.
+  ##
+  faceRecognitionEnabled: true
+
+## @section Subchart configuration of Keycloak
+## @descriptionStart Overwrites some default values of Bitnami's Keycloak chart. 
+##
+## ref: https://artifacthub.io/packages/helm/bitnami/keycloak/9.6.1
+## @descriptionEnd
+##
+keycloak:
+  ## @param keycloak.enabled Whether to install or not the Jitsi chart
+  ##
+  enabled: true
+  ## Service configuration
+  ##
+  service:
+    ## @param keycloak.service.type Kubernetes service type
+    ##
+    type: ClusterIP
+    ## @param keycloak.service.nodeIP Node IP is needed when using service type NodePort
+    ##
+    nodeIP:
+    ## @param keycloak.service.loadBalancerIP LoadBalancer IP is needed when using service type LoadBalancer
+    ##
+    loadBalancerIP:
+  ## @extra keycloak.auth Keycloak authentication parameters
+  ## ref: https://github.com/bitnami/containers/tree/main/bitnami/keycloak#admin-credentials
+  ##  
+  auth:
+    ## @param keycloak.auth.adminUser Keycloak administrator user
+    ##
+    adminUser: admin
+    ## @param keycloak.auth.adminPassword Keycloak administrator password for the new user
+    ##
+    adminPassword: "admin"
+    ## TLS encryption parameters
+    ## ref: https://github.com/bitnami/containers/tree/main/bitnami/keycloak#tls-encryption
+    ##
+    tls: 
+      ## @param keycloak.auth.tls.enabled Enable TLS encryption. Required for HTTPs traffic.
+      ##
+      enabled: true
+      ## @param keycloak.auth.tls.autoGenerated Generate automatically self-signed TLS certificates. Currently only supports PEM certificates
+      ##
+      autoGenerated: true
+  ## @extra keycloak.keycloakConfigCli Configuration for keycloak-config-cli
+  ## ref: https://github.com/adorsys/keycloak-config-cli
+  ##
+  keycloakConfigCli:
+    ## @param keycloak.keycloakConfigCli.enabled Whether to enable keycloak-config-cli job
+    ##
+    enabled: true
+    ## @param keycloak.keycloakConfigCli.existingConfigmap ConfigMap with keycloak-config-cli configuration. This will override `keycloakConfigCli.config`
+    ##
+    existingConfigmap: "keycloak-config-cli-configmap"
+  ## PostgreSQL chart configuration
+  ## ref: https://github.com/bitnami/charts/blob/master/bitnami/postgresql/values.yaml  
+  ## @param keycloak.postgresql.auth.password Password for the custom user to create
+  ##
+  postgresql:
+    auth:
+      password: "admin"
+
+## keycloak-config-cli realms configuration
+## NOTE: nil keys will be considered files to import locally
+## @param keycloakConfigCli.configuration.files/jitsi-emotion.yaml The configmap referenced in `keycloak.keycloakConfigCli.existingConfigmap`. Realm configuration
+##
+keycloakConfigCli:
+  configuration:
+    files/jitsi-emotion.yaml:
+    
+
+## TODO revisit, since it has only been used in the context of a single master redis.
+## @section Subchart configuration of Grafana
+## @descriptionStart Overwrites some default values of Bitnami's Grafana chart.
+##
+## ref: https://artifacthub.io/packages/helm/bitnami/grafana/8.1.0
+## @descriptionEnd
+## @skip grafana.datasources
+## @skip grafana.grafana.extraEnvVars
+## @skip grafana.dashboardsConfigMaps
+## 
+grafana:
+  ## @param grafana.enabled Whether to install or not the Grafana chart
+  ##
+  enabled: false
+  ## @param grafana.plugins Grafana plugins to be installed in deployment time separated by commas
+  ## Specify plugins as a list separated by commas ( you will need to scape them when specifying from command line )
+  ## Example:
+  ## plugins: grafana-kubernetes-app,grafana-example-app
+  ##
+  plugins: "redis-app,redis-datasource,volkovlabs-image-panel"
+  ## Create dasboard provider to load dashboards, a default one is created to load dashboards
+  ## from "/opt/bitnami/grafana/dashboards"
+  ## @param grafana.dashboardsProvider.enabled Enable the use of a Grafana dashboard provider
+  ##
+  dashboardsProvider:
+    enabled: true
+  ## @extra grafana.dashboardsConfigMaps Array with the names of a series of ConfigMaps containing dashboards files
+  ## They will be mounted by the default dashboard provider if it is enabled
+  ## Use an array with the configMap names.
+  ## In order to use subfolders, uncomment "#foldersFromFilesStructure: true" line in default provider config. or create your own dashboard provider.
+  ## Example:
+  ## dashboardsConfigMaps:
+  ##   - configMapName: mydashboard
+  ##     folderName: foo
+  ##     fileName: mydashboard.json
+  ##   - configMapName: myotherdashboard
+  ##     folderName: bar
+  ##     fileName: myotherdashboard.json
+  ##
+  dashboardsConfigMaps:
+    - configMapName: redis-camera
+      fileName: camera.json
+  ## Import datasources from an externally-managed secret, or a secret definition set via Helm values.
+  ##
+  datasources:
+    ## @extra grafana.datasources.secretDefinition The contents of a secret defining a custom datasource file. Only used if datasources.secretName is empty or not defined.
+    ## Example:
+    ## secretDefinition:
+    ##   apiVersion: 1
+    ##   datasources:
+    ##   - name: Prometheus
+    ##     type: prometheus
+    ##     url: http://prometheus-prometheus-server
+    ##     access: proxy
+    ##     isDefault: true
+    ##
+    secretDefinition:
+      apiVersion: 1
+      datasources:
+        - name: Redis
+          type: redis-datasource
+          access: proxy
+          orgId: 1
+          isDefault: true
+          version: 1
+          url: redis://myredis-headless:6379 # Assumes Redis' service name is myredis.
+          editable: true
+  grafana:
+    ## @extra grafana.grafana.extraEnvVars Array containing extra env vars to configure Grafana
+    ## For example:
+    ## extraEnvVars:
+    ##  - name: GF_DEFAULT_INSTANCE_NAME
+    ##    value: my-instance
+    ##
+    extraEnvVars:
+      - name: GF_AUTH_ANONYMOUS_ENABLED
+        value: "true"
+      - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+        value: Admin
+      - name: GF_AUTH_BASIC_ENABLED
+        value: "false"
+
+## @section Ingress configuration
+## @descriptionStart Configure the ingress resource that allows you to access the
+## Fuh-Realtime-Emotions installation. Set up the URLs
+##
+## ref: https://kubernetes.io/docs/user-guide/ingress/
+## @descriptionEnd
+## @skip ingress.additionalHosts.emotionbackend.path
+## @skip ingress.additionalHosts.keycloak.path
+## @skip ingress.additionalHosts.jitsi.path
+## @skip ingress.additionalHosts.authentication.path
+## @skip ingress.additionalHosts.emotionbackend.pathType
+## @skip ingress.additionalHosts.keycloak.pathType
+## @skip ingress.additionalHosts.jitsi.pathType
+## @skip ingress.additionalHosts.authentication.pathType
+## @skip ingress.additionalHosts.emotionbackend.servicePort
+## @skip ingress.additionalHosts.keycloak.servicePort
+## @skip ingress.additionalHosts.jitsi.servicePort
+## @skip ingress.additionalHosts.authentication.servicePort
+##
 ingress:
   ## @param ingress.enabled Enable ingress record generation for fuh-realtime-emotions
   ##
@@ -22,7 +397,7 @@ ingress:
       nginx.ingress.kubernetes.io/enable-cors: "true"
       nginx.ingress.kubernetes.io/cors-allow-methods: "PUT, GET, POST, OPTIONS, DELETE"
       nginx.ingress.kubernetes.io/cors-allow-origin: "http(s)://{{ tpl .Values.ingress.additionalHosts.jitsi.hostname .}}"
-  ## @param ingress.tls Enable TLS configuration for the host defined at `ingress.hostname` parameter
+  ## @param ingress.tls Enable TLS configuration for all defined hosts (SAN certificate) 
   ## TLS certificates will be retrieved from a TLS secret with name: `{{- printf "%s-tls" (tpl .Values.ingress.hostname .) }}`
   ## You can:
   ##   - Use the `ingress.secrets` parameter to create this TLS secret
@@ -33,181 +408,55 @@ ingress:
   ## @param ingress.selfSigned Create a TLS secret for this ingress record using self-signed certificates generated by Helm
   ##
   selfSigned: true
-
-  ##
+  ## @extra ingress.additionalHosts Ingress rules for the services that make up Fuh-Realtime-Emotions.
   additionalHosts:
+    ## @disabled-param ingress.additionalHosts.keycloak.path The path to keycloak
+    ## @param ingress.additionalHosts.keycloak.hostname When the ingress is enabled, a host pointing to this will be created.
+    ## @disabled-param ingress.additionalHosts.keycloak.pathType Ingress path type
+    ## @disabled-param ingress.additionalHosts.keycloak.servicePort Backend service port to use
     keycloak: 
       pathType: ImplementationSpecific 
       hostname: keycloak.emotion
       path: /
       servicePort: http
+    ## @disabled-param ingress.additionalHosts.jitsi.path The path to Keycloak
+    ## @param ingress.additionalHosts.jitsi.hostname When the ingress is enabled, a host pointing to this will be created.
+    ## @disabled-param ingress.additionalHosts.jitsi.pathType Ingress path type
+    ## @disabled-param ingress.additionalHosts.jitsi.servicePort Backend service port to use
+    ##  
     jitsi: 
       pathType: ImplementationSpecific 
       hostname: '{{ (splitList "//" .Values.jitsi.publicURL) | last  }}'
       path: /
       servicePort: http
+    ## @disabled-param ingress.additionalHosts.emotionbackend.path The path to Jitsi
+    ## @param ingress.additionalHosts.emotionbackend.hostname When the ingress is enabled, a host pointing to this will be created.
+    ## @disabled-param ingress.additionalHosts.emotionbackend.pathType Ingress path type
+    ## @disabled-param ingress.additionalHosts.emotionbackend.servicePort Backend service port to use
+    ##      
     emotionbackend:
       pathType: ImplementationSpecific 
       hostname: "{{ .Values.global.emotionbackendHostname }}" 
       path: /
       servicePort: http
+    ## @disabled-param ingress.additionalHosts.authentication.path The path to the emotionbackend
+    ## @param ingress.additionalHosts.authentication.hostname When the ingress is enabled, a host pointing to this will be created.
+    ## @disabled-param ingress.additionalHosts.authentication.pathType Ingress path type
+    ## @disabled-param ingress.additionalHosts.authentication.servicePort Backend service port to use
+    ##      
     authentication:
       pathType: ImplementationSpecific 
       hostname: "{{ .Values.global.authHostname }}"
       path: /
-      servicePort: http      
+      servicePort: http
+
+## @section Global parameters  
+## @descriptionStart Global authHostname and emotionbackendHostname are needed to have a single 
+## source of truth and for the subcharts to have access to it without the need for modifications
+## @descriptionEnd
+## @param global.authHostname Determines the hostname of the authentication service in the [Ingress](#ingress-configuration)
+## @param global.emotionbackendHostname Determines the hostname of the authentication service in the [Ingress](#ingress-configuration)
+##      
 global:
   authHostname: authentication.emotion
   emotionbackendHostname: emotionbackend
-
-
-## Overwrites default values of Bitnami's Node.js chart. 
-## Referenced in Jitsi's tokenauthurl. Utilizes Keycloak to provide Jitsi with JWTs.
-authentication:
-  enabled: true
-  service:
-    type: ClusterIP
-    ## @param authentication.service.nodeIP
-    ##
-    nodeIP:
-    ## @param authentication.service.loadBalancerIP
-    ##
-    loadBalancerIP: 
-  extraEnvVarsCM: "fuh-realtime-emotions-auth-config"
-  mongodb:
-    enabled: false
-  image:
-    repository: erge234/auth
-    tag: helm
-    pullPolicy: Always
-  getAppFromExternalRepository: false
-
-## Overwrites default values of Bitnami's Node.js chart. 
-## Used to run socket.IO. Sits between browsers running Jitsi and backend services.
-emotionbackend:
-  enabled: true
-  extraEnvVarsCM: "emotionbackend-configuration"
-  mongodb:
-    enabled: false
-  image:
-    repository: erge234/authentication
-    tag: latest
-    pullPolicy: Always
-  containerPorts:
-    http: 8010
-  getAppFromExternalRepository: false
-
-
-## Overwrites default values of Bitnami's Grafana chart.
-## TODO revisit, since it has only been used in the context of a single master redis.
-grafana:
-  enabled: false
-  plugins: "redis-app,redis-datasource,volkovlabs-image-panel"
-  dashboardsProvider:
-    enabled: true
-  dashboardsConfigMaps:
-    - configMapName: redis-camera
-      fileName: camera.json
-  datasources:
-    secretDefinition:
-      apiVersion: 1
-      datasources:
-        - name: Redis
-          type: redis-datasource
-          access: proxy
-          orgId: 1
-          isDefault: true
-          version: 1
-          url: redis://myredis-headless:6379 # Assumes Redis' service name is myredis.
-          editable: true
-  grafana:
-    extraEnvVars:
-      - name: GF_AUTH_ANONYMOUS_ENABLED
-        value: "true"
-      - name: GF_AUTH_ANONYMOUS_ORG_ROLE
-        value: Admin
-      - name: GF_AUTH_BASIC_ENABLED
-        value: "false"
-
-## Overwrites default values of the community supported 3rd party Jitsi chart. 
-jitsi:
-  enabled: true
-  enableAuth: true
-  enableGuests: false
-  publicURL: "https://jitsi.emotion"
-  web:
-    image:
-      repository: erge234/web # Is configured to connect to https://emotionbackend 
-      tag: stable-6865-emotion
-      pullPolicy: Always
-    extraEnvs: {TOKEN_AUTH_URL: "https://{{ .Values.global.authHostname }}/room/{room}", EMOTIONBACKEND_URL: "https://{{ .Values.global.emotionbackendHostname }} "}
-  jvb:
-    UDPPort: 30000
-    publicIP: jitsi.emotion # Your node's public ip. Must not resolve to localhost.
-    service:
-      type: NodePort
-    websockets:
-      enabled: true
-  extraCommonEnvs: {
-    AUTH_TYPE: jwt,
-    JWT_APP_ID: jitsi-meet-emotion,
-    JWT_APP_SECRET: 254uni5DFCY25hvb233bjHJBm6l34j5hb43hb3Fuy23ebwuyfMDWft2,
-    JWT_ACCEPTED_ISSUERS: jitsi,
-    JWT_ACCEPTED_AUDIENCES: jitsi,
-    XMPP_CROSS_DOMAIN: "true" ,}
-
-## Overwrites default values of Bitnami's Redis-Cluster chart. 
-## Uses an image equipped with RedisAI and Redis Gears module.
-redis:
-  enabled: true
-  image:
-    repository: erge234/redis-cluster
-    tag: 6.2-debian-11
-  usePassword: false
-  redis:
-    configmap: |+
-      loadmodule /usr/lib/redis/modules/redistimeseries.so
-      loadmodule /usr/lib/redis/modules/redisai.so
-      loadmodule /usr/lib/redis/modules/redisgears.so Plugin /var/opt/redislabs/modules/rg/plugin/gears_python.so
-  cluster:
-    nodes: 3
-    replicas: 0
-
-## Loads AI models and Redis Gears after chart installation. 
-redisAIProvider:
-  image: 
-    repository: erge234/redis-ai-client
-    pullPolicy: Always
-  faceRecognitionEnabled: true
-
-## Overwrites default values of Bitnami's Keycloak chart. 
-keycloak:
-  enabled: true
-  service:
-    type: ClusterIP
-    ## @param keycloak.service.nodeIP
-    ##
-    nodeIP:
-    ## @param keycloak.service.loadBalancerIP
-    ##
-    loadBalancerIP:
-  auth:
-    adminUser: admin
-    adminPassword: "admin"
-    tls: 
-      enabled: true
-      autoGenerated: true
-  keycloakConfigCli:
-    enabled: true
-    existingConfigmap: "keycloak-config-cli-configmap"
-  postgresql:
-    auth:
-      password: "admin"
-
-# The configmap referenced in `keycloak.keycloakConfigCli.existingConfigmap`
-# keycloak-config-cli realms configuration
-# NOTE: nil keys will be considered files to import locally
-keycloakConfigCli:
-  configuration:
-    files/jitsi-emotion.yaml:
-
